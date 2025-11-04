@@ -1,0 +1,64 @@
+# Build artifacts
+build/
+dist/
+*.o
+*.a
+*.so
+*.dylib
+*.wasm
+*.js.mem
+
+# Node.js
+node_modules/
+pwa/build/
+pwa/.env.local
+pwa/.env.development.local
+pwa/.env.test.local
+pwa/.env.production.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.log
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile.core
+
+# Emscripten
+*.bc
+*.mem
+
+# Package artifacts
+*.zip
+*.tar.gz
+*.sig
+*.sha256
+
+# Local storage
+.kolibri/
+kolibri_storage/
+kolibri_chain/
+
+# OS
+Thumbs.db
+.DS_Store
