@@ -15,6 +15,7 @@ function Dashboard({ db }) {
     loadData();
     const interval = setInterval(loadData, 5000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [db]);
 
   const loadData = async () => {

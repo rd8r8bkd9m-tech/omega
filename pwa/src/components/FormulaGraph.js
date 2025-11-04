@@ -5,6 +5,7 @@ function FormulaGraph({ db }) {
 
   useEffect(() => {
     loadFormulas();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [db]);
 
   const loadFormulas = async () => {
