@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import App from './App';
 
-test('renders KOLIBRI.AI header', () => {
+test('renders KOLIBRI.AI application', () => {
   render(<App />);
-  const headerElement = screen.getByText(/KOLIBRI.AI/i);
-  expect(headerElement).toBeInTheDocument();
+  const headerElements = screen.getAllByText(/KOLIBRI.AI/i);
+  expect(headerElements.length).toBeGreaterThan(0);
 });
