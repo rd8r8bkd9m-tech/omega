@@ -15,7 +15,7 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Install dependencies
       run: |
@@ -46,7 +46,7 @@ jobs:
         fi
     
     - name: Upload Core Artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: core-${{ matrix.os }}
         path: build/core/libkolibri.a
@@ -56,10 +56,10 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: '18'
         cache: 'npm'
@@ -88,7 +88,7 @@ jobs:
         echo "Target: ≤40 MB (41943040 bytes)"
     
     - name: Upload Frontend Artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: frontend
         path: pwa/build/
@@ -99,16 +99,16 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Download Core Artifact
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: core-ubuntu-latest
         path: build/core/
     
     - name: Download Frontend Artifact
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: frontend
         path: pwa/build/
@@ -119,13 +119,13 @@ jobs:
         ./scripts/pack.sh
     
     - name: Upload Release Package
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: kolibri-release
         path: dist/kolibri_ready_v1.zip
     
     - name: Upload Checksums
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: kolibri-checksums
         path: dist/kolibri_ready_v1.zip.sha256
@@ -135,7 +135,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: First Build
       run: |
