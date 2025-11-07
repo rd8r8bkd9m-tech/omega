@@ -58,6 +58,16 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
+    - name: Ensure package-lock.json exists
+      run: |
+        if [ ! -f pwa/package-lock.json ]; then
+          echo "package-lock.json not found, generating it..."
+          cd pwa
+          npm install --package-lock-only
+        else
+          echo "package-lock.json already exists"
+        fi
+    
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
