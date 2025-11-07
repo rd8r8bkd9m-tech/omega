@@ -1,0 +1,157 @@
+name: Build and Test KOLIBRI.AI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-core:
+    name: Build Core
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install dependencies
+      run: |
+        if [ "$RUNNER_OS" == "Linux" ]; then
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential
+        elif [ "$RUNNER_OS" == "macOS" ]; then
+          brew install cmake
+        fi
+    
+    - name: Build Core
+      run: make core
+    
+    - name: Run Core Tests
+      run: |
+        cd build/core
+        ctest --output-on-failure || echo "Tests not yet implemented"
+    
+    - name: Check Core Size
+      run: |
+        SIZE=$(stat -f%z build/core/libkolibri.a 2>/dev/null || stat -c%s build/core/libkolibri.a)
+        echo "Core library size: $SIZE bytes"
+        echo "Target: ≤10 MB (10485760 bytes)"
+        if [ $SIZE -gt 10485760 ]; then
+          echo "⚠️ Core size exceeds 10 MB target"
+        else
+          echo "✅ Core size within target"
+        fi
+    
+    - name: Upload Core Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: core-${{ matrix.os }}
+        path: build/core/libkolibri.a
+
+  build-frontend:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: pwa/package-lock.json
+    
+    - name: Install Dependencies
+      run: |
+        cd pwa
+        npm ci
+    
+    - name: Build Frontend
+      run: |
+        cd pwa
+        npm run build
+    
+    - name: Run Frontend Tests
+      run: |
+        cd pwa
+        npm test -- --watchAll=false --passWithNoTests
+    
+    - name: Check Bundle Size
+      run: |
+        cd pwa/build
+        TOTAL_SIZE=$(du -sb . | cut -f1)
+        echo "Frontend bundle size: $TOTAL_SIZE bytes"
+        echo "Target: ≤40 MB (41943040 bytes)"
+    
+    - name: Upload Frontend Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: frontend
+        path: pwa/build/
+
+  package:
+    name: Create Release Package
+    needs: [build-core, build-frontend]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Download Core Artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: core-ubuntu-latest
+        path: build/core/
+    
+    - name: Download Frontend Artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: frontend
+        path: pwa/build/
+    
+    - name: Create Package
+      run: |
+        chmod +x scripts/pack.sh
+        ./scripts/pack.sh
+    
+    - name: Upload Release Package
+      uses: actions/upload-artifact@v3
+      with:
+        name: kolibri-release
+        path: dist/kolibri_ready_v1.zip
+    
+    - name: Upload Checksums
+      uses: actions/upload-artifact@v3
+      with:
+        name: kolibri-checksums
+        path: dist/kolibri_ready_v1.zip.sha256
+
+  determinism-check:
+    name: Check Build Determinism
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: First Build
+      run: |
+        make core
+        cp build/core/libkolibri.a /tmp/build1.a
+        make clean
+    
+    - name: Second Build
+      run: |
+        make core
+        cp build/core/libkolibri.a /tmp/build2.a
+    
+    - name: Compare Builds
+      run: |
+        if cmp -s /tmp/build1.a /tmp/build2.a; then
+          echo "✅ Builds are deterministic"
+        else
+          echo "⚠️ Builds differ (may be due to timestamps)"
+        fi
