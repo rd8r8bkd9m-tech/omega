@@ -3,20 +3,11 @@
  */
 
 #include "kolibri_chain.h"
+#include "kolibri_utils.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
-
-/* Simple hash function (would use SHA-256 in production) */
-static void simple_hash(const void* data, size_t len, uint8_t* hash) {
-    memset(hash, 0, CHAIN_HASH_SIZE);
-    const uint8_t* bytes = (const uint8_t*)data;
-    for (size_t i = 0; i < len; i++) {
-        hash[i % CHAIN_HASH_SIZE] ^= bytes[i];
-        hash[(i + 1) % CHAIN_HASH_SIZE] = (hash[(i + 1) % CHAIN_HASH_SIZE] + bytes[i]) & 0xFF;
-    }
-}
 
 /* Block storage */
 typedef struct block_entry_t {
@@ -82,8 +73,8 @@ static void calculate_merkle_root(const uint8_t formula_ids[][32], uint32_t coun
         return;
     }
     
-    /* Simple merkle: hash all IDs together */
-    simple_hash(formula_ids, count * 32, merkle_root);
+    /* Simple merkle: hash all IDs together using shared utility */
+    kolibri_hash(formula_ids, count * 32, merkle_root);
 }
 
 /* Get latest block */
@@ -107,7 +98,7 @@ int chain_create_block(kolibri_chain_t* chain, const uint8_t* author_private_key
     /* Get previous block hash */
     kolibri_block_t prev;
     if (chain_get_latest_block(chain, &prev) == CHAIN_OK) {
-        simple_hash(&prev, sizeof(kolibri_block_t) - CHAIN_SIGNATURE_SIZE, block->prev_hash);
+        kolibri_hash(&prev, sizeof(kolibri_block_t) - CHAIN_SIGNATURE_SIZE, block->prev_hash);
         block->block_number = prev.block_number + 1;
     } else {
         memset(block->prev_hash, 0, CHAIN_HASH_SIZE);
@@ -132,13 +123,9 @@ int chain_create_block(kolibri_chain_t* chain, const uint8_t* author_private_key
             block->author_pub[i] = author_private_key[i] ^ 0xAA;
         }
         
-        /* Sign block */
-        uint8_t block_hash[CHAIN_HASH_SIZE];
-        simple_hash(block, sizeof(kolibri_block_t) - CHAIN_SIGNATURE_SIZE, block_hash);
-        
-        for (int i = 0; i < CHAIN_SIGNATURE_SIZE; i++) {
-            block->signature[i] = (block_hash[i % CHAIN_HASH_SIZE] ^ author_private_key[i % 32]) & 0xFF;
-        }
+        /* Sign block using shared utilities */
+        kolibri_sign_data((const uint8_t*)block, sizeof(kolibri_block_t) - CHAIN_SIGNATURE_SIZE,
+                         author_private_key, block->signature, CHAIN_SIGNATURE_SIZE);
     }
     
     return CHAIN_OK;
@@ -197,7 +184,7 @@ int chain_verify_block(kolibri_chain_t* chain, const kolibri_block_t* block) {
         kolibri_block_t prev;
         if (chain_get_block(chain, block->block_number - 1, &prev) == CHAIN_OK) {
             uint8_t prev_hash[CHAIN_HASH_SIZE];
-            simple_hash(&prev, sizeof(kolibri_block_t) - CHAIN_SIGNATURE_SIZE, prev_hash);
+            kolibri_hash(&prev, sizeof(kolibri_block_t) - CHAIN_SIGNATURE_SIZE, prev_hash);
             
             if (memcmp(prev_hash, block->prev_hash, CHAIN_HASH_SIZE) != 0) {
                 return CHAIN_ERROR_VERIFICATION;
@@ -222,8 +209,8 @@ int chain_get_info(kolibri_chain_t* chain, chain_info_t* info) {
     }
     
     if (chain->head) {
-        simple_hash(&chain->head->block, sizeof(kolibri_block_t) - CHAIN_SIGNATURE_SIZE,
-                   info->latest_hash);
+        kolibri_hash(&chain->head->block, sizeof(kolibri_block_t) - CHAIN_SIGNATURE_SIZE,
+                    info->latest_hash);
     }
     
     return CHAIN_OK;
@@ -236,10 +223,12 @@ int chain_export(kolibri_chain_t* chain, const char* path) {
     FILE* f = fopen(path, "wb");
     if (!f) return CHAIN_ERROR;
     
-    /* Write header */
+    /* Write header using shared utility */
     uint32_t magic = 0x4B434841; /* "KCHA" */
-    fwrite(&magic, sizeof(magic), 1, f);
-    fwrite(&chain->block_count, sizeof(uint32_t), 1, f);
+    if (kolibri_write_header(f, magic, chain->block_count) != 0) {
+        fclose(f);
+        return CHAIN_ERROR;
+    }
     
     /* Write blocks in reverse order (oldest first) */
     block_entry_t** entries = (block_entry_t**)malloc(sizeof(block_entry_t*) * chain->block_count);
@@ -272,14 +261,13 @@ int chain_import(kolibri_chain_t* chain, const char* path) {
     FILE* f = fopen(path, "rb");
     if (!f) return CHAIN_ERROR;
     
-    /* Read header */
-    uint32_t magic, count;
-    fread(&magic, sizeof(magic), 1, f);
-    if (magic != 0x4B434841) {
+    /* Read header using shared utility */
+    uint32_t magic = 0x4B434841; /* "KCHA" */
+    uint32_t count;
+    if (kolibri_read_header(f, magic, &count) != 0) {
         fclose(f);
         return CHAIN_ERROR;
     }
-    fread(&count, sizeof(uint32_t), 1, f);
     
     /* Read blocks */
     for (uint32_t i = 0; i < count; i++) {
