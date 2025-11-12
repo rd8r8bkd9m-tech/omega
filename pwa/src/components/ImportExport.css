@@ -1,0 +1,33 @@
+/* Import Export Styles */
+
+.export-section,
+.import-section {
+  margin-bottom: 2rem;
+}
+
+.file-input {
+  margin-bottom: 1rem;
+}
+
+.drop-zone {
+  border: 2px dashed var(--border);
+  padding: 3rem;
+  text-align: center;
+  cursor: pointer;
+}
+
+.drop-zone:hover {
+  border-color: var(--primary);
+  background: var(--surface-hover);
+}
+
+.status-message {
+  margin-top: 1rem;
+  padding: 1rem;
+  color: white;
+  border-radius: 0.5rem;
+}
+
+.status-message.success {
+  background: #10b981;
+}

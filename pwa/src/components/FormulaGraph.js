@@ -1,17 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useDataLoader } from '../hooks/useDataLoader';
+import { LoadingState } from './common/UIComponents';
 
 function FormulaGraph({ db }) {
-  const [formulas, setFormulas] = useState([]);
+  const { data: formulas, loading } = useDataLoader(
+    () => db.listFormulas(),
+    [db]
+  );
 
-  useEffect(() => {
-    loadFormulas();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [db]);
-
-  const loadFormulas = async () => {
-    const data = await db.listFormulas();
-    setFormulas(data);
-  };
+  if (loading || !formulas) {
+    return <LoadingState message="Loading graph..." />;
+  }
 
   return (
     <div className="kolibri-card">

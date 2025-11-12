@@ -1,0 +1,35 @@
+/* Rule Tiers Styles */
+
+.rule-tiers-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.rule-tier-card {
+  padding: 1.5rem;
+}
+
+.rule-tier-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rule-info {
+  flex: 1;
+}
+
+.rule-controls {
+  text-align: right;
+}
+
+.budget-slider {
+  width: 200px;
+  margin-top: 0.5rem;
+}
+
+.add-tier-button {
+  margin-top: 1rem;
+}

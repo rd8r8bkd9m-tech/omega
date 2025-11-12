@@ -1,7 +1,21 @@
 import React, { useState } from 'react';
+import './ImportExport.css';
+import { ErrorState } from './common/UIComponents';
 
 function ImportExport({ db }) {
   const [status, setStatus] = useState('');
+  const [error, setError] = useState(null);
+
+  const showSuccess = (message) => {
+    setStatus(message);
+    setError(null);
+    setTimeout(() => setStatus(''), 3000);
+  };
+
+  const showError = (message) => {
+    setError(message);
+    setStatus('');
+  };
 
   const handleExport = async () => {
     try {
@@ -12,10 +26,9 @@ function ImportExport({ db }) {
       a.href = url;
       a.download = `kolibri-export-${Date.now()}.kpack`;
       a.click();
-      setStatus('✅ Export successful');
-      setTimeout(() => setStatus(''), 3000);
-    } catch (error) {
-      setStatus('❌ Export failed: ' + error.message);
+      showSuccess('✅ Export successful');
+    } catch (err) {
+      showError('Export failed: ' + err.message);
     }
   };
 
@@ -27,22 +40,24 @@ function ImportExport({ db }) {
       const text = await file.text();
       const data = JSON.parse(text);
       await db.importData(data);
-      setStatus('✅ Import successful');
-      setTimeout(() => setStatus(''), 3000);
-    } catch (error) {
-      setStatus('❌ Import failed: ' + error.message);
+      showSuccess('✅ Import successful');
+    } catch (err) {
+      showError('Import failed: ' + err.message);
     }
   };
 
   const handleDrop = async (event) => {
     event.preventDefault();
-    const file = event.dataTransfer.files[0];
-    if (file && (file.name.endsWith('.kpack') || file.name.endsWith('.kform'))) {
-      const text = await file.text();
-      const data = JSON.parse(text);
-      await db.importData(data);
-      setStatus('✅ File imported via drag & drop');
-      setTimeout(() => setStatus(''), 3000);
+    try {
+      const file = event.dataTransfer.files[0];
+      if (file && (file.name.endsWith('.kpack') || file.name.endsWith('.kform'))) {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        await db.importData(data);
+        showSuccess('✅ File imported via drag & drop');
+      }
+    } catch (err) {
+      showError('Import failed: ' + err.message);
     }
   };
 
@@ -50,7 +65,9 @@ function ImportExport({ db }) {
     <div>
       <h2>Import / Export</h2>
       
-      <div className="kolibri-card" style={{ marginBottom: '2rem' }}>
+      {error && <ErrorState message={error} onRetry={() => setError(null)} />}
+      
+      <div className="kolibri-card export-section">
         <h3>Export Knowledge</h3>
         <p>Export all formulas and blocks as a .kpack file</p>
         <button className="kolibri-button" onClick={handleExport}>
@@ -58,43 +75,27 @@ function ImportExport({ db }) {
         </button>
       </div>
 
-      <div className="kolibri-card" style={{ marginBottom: '2rem' }}>
+      <div className="kolibri-card import-section">
         <h3>Import Knowledge</h3>
         <p>Import formulas from .kpack or .kform files</p>
         <input 
           type="file" 
           accept=".kpack,.kform" 
           onChange={handleImport}
-          style={{ marginBottom: '1rem' }}
+          className="file-input"
         />
       </div>
 
       <div 
-        className="kolibri-card"
+        className="kolibri-card drop-zone"
         onDrop={handleDrop}
         onDragOver={(e) => e.preventDefault()}
-        style={{ 
-          border: '2px dashed var(--border)', 
-          padding: '3rem', 
-          textAlign: 'center',
-          cursor: 'pointer' 
-        }}
       >
         <h3>📁 Drag & Drop Zone</h3>
         <p>Drop .kpack or .kform files here to import</p>
       </div>
 
-      {status && (
-        <div style={{ 
-          marginTop: '1rem', 
-          padding: '1rem', 
-          background: status.startsWith('✅') ? '#10b981' : '#ef4444',
-          color: 'white',
-          borderRadius: '0.5rem'
-        }}>
-          {status}
-        </div>
-      )}
+      {status && <div className="status-message success">{status}</div>}
     </div>
   );
 }
