@@ -62,13 +62,45 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '18'
-        cache: 'npm'
-        cache-dependency-path: pwa/package-lock.json
+    
+    - name: Determine cache key
+      id: cache-key
+      run: |
+        if [ -f "pwa/package-lock.json" ]; then
+          echo "key=npm-${{ runner.os }}-${{ hashFiles('pwa/package-lock.json') }}" >> $GITHUB_OUTPUT
+          echo "path=~/.npm" >> $GITHUB_OUTPUT
+          echo "lockfile=package-lock.json" >> $GITHUB_OUTPUT
+        elif [ -f "pwa/yarn.lock" ]; then
+          echo "key=yarn-${{ runner.os }}-${{ hashFiles('pwa/yarn.lock') }}" >> $GITHUB_OUTPUT
+          echo "path=~/.yarn/cache" >> $GITHUB_OUTPUT
+          echo "lockfile=yarn.lock" >> $GITHUB_OUTPUT
+        else
+          echo "key=no-lockfile-${{ runner.os }}-${{ hashFiles('pwa/package.json') }}" >> $GITHUB_OUTPUT
+          echo "path=~/.npm" >> $GITHUB_OUTPUT
+          echo "lockfile=none" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: ${{ steps.cache-key.outputs.path }}
+        key: ${{ steps.cache-key.outputs.key }}
+        restore-keys: |
+          ${{ contains(steps.cache-key.outputs.key, 'npm') && format('npm-{0}-', runner.os) || '' }}
+          ${{ contains(steps.cache-key.outputs.key, 'yarn') && format('yarn-{0}-', runner.os) || '' }}
+          ${{ contains(steps.cache-key.outputs.key, 'no-lockfile') && format('no-lockfile-{0}-', runner.os) || '' }}
     
     - name: Install Dependencies
       run: |
         cd pwa
-        npm ci
+        if [ -f "package-lock.json" ]; then
+          npm ci
+        elif [ -f "yarn.lock" ]; then
+          npm install -g yarn
+          yarn install --frozen-lockfile
+        else
+          npm install
+        fi
     
     - name: Build Frontend
       run: |
