@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import './ClusterManager.css';
+import { StatusDisplay } from './common/UIComponents';
 
 function ClusterManager({ db }) {
   const [workerCount, setWorkerCount] = useState(10);
@@ -20,13 +22,15 @@ function ClusterManager({ db }) {
   const startCluster = () => setIsRunning(true);
   const stopCluster = () => setIsRunning(false);
 
+  const utilization = Math.floor((metrics.busy / metrics.total) * 100);
+
   return (
     <div>
       <h2>Cluster Manager</h2>
       
-      <div className="kolibri-card" style={{ marginBottom: '2rem' }}>
+      <div className="kolibri-card cluster-config">
         <h3>Configuration</h3>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+        <div className="config-controls">
           <label>Worker Count: </label>
           <input 
             type="range" 
@@ -39,7 +43,7 @@ function ClusterManager({ db }) {
           <span>{workerCount}</span>
         </div>
         
-        <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem' }}>
+        <div className="cluster-actions">
           <button 
             className="kolibri-button" 
             onClick={startCluster}
@@ -48,10 +52,9 @@ function ClusterManager({ db }) {
             ▶️ Start Cluster
           </button>
           <button 
-            className="kolibri-button" 
+            className="kolibri-button stop-button" 
             onClick={stopCluster}
             disabled={!isRunning}
-            style={{ background: '#ef4444' }}
           >
             ⏹️ Stop Cluster
           </button>
@@ -60,13 +63,22 @@ function ClusterManager({ db }) {
 
       <div className="kolibri-card">
         <h3>Status</h3>
-        <div style={{ padding: '1rem', background: 'var(--background)', borderRadius: '0.5rem' }}>
-          <div>Status: {isRunning ? '🟢 Running' : '🔴 Stopped'}</div>
-          <div>Workers: {metrics.busy} busy / {metrics.total} total</div>
-          <div>Utilization: {Math.floor((metrics.busy / metrics.total) * 100)}%</div>
+        <div className="status-panel">
+          <StatusDisplay 
+            label="Status" 
+            value={isRunning ? '🟢 Running' : '🔴 Stopped'} 
+          />
+          <StatusDisplay 
+            label="Workers" 
+            value={`${metrics.busy} busy / ${metrics.total} total`} 
+          />
+          <StatusDisplay 
+            label="Utilization" 
+            value={`${utilization}%`} 
+          />
         </div>
         
-        <div style={{ marginTop: '1rem', height: '100px', background: 'var(--background)', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="activity-visualization">
           Worker activity visualization
         </div>
       </div>

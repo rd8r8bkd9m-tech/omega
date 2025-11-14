@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import './RuleTiers.css';
 
 function RuleTiers({ db }) {
   const [rules, setRules] = useState([
@@ -12,15 +13,15 @@ function RuleTiers({ db }) {
       <h2>Rule Tiers</h2>
       <p>Define policies and priorities for formula execution</p>
       
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '2rem' }}>
+      <div className="rule-tiers-container">
         {rules.map(rule => (
-          <div key={rule.id} className="kolibri-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
+          <div key={rule.id} className="kolibri-card rule-tier-card">
+            <div className="rule-tier-content">
+              <div className="rule-info">
                 <h3>Priority: {rule.priority}</h3>
                 <p>{rule.description}</p>
               </div>
-              <div style={{ textAlign: 'right' }}>
+              <div className="rule-controls">
                 <div>CPU Budget: {rule.budget}%</div>
                 <input 
                   type="range" 
@@ -32,7 +33,7 @@ function RuleTiers({ db }) {
                     newRules[rule.id - 1].budget = parseInt(e.target.value);
                     setRules(newRules);
                   }}
-                  style={{ width: '200px' }}
+                  className="budget-slider"
                 />
               </div>
             </div>
@@ -40,7 +41,7 @@ function RuleTiers({ db }) {
         ))}
       </div>
       
-      <button className="kolibri-button" style={{ marginTop: '1rem' }}>
+      <button className="kolibri-button add-tier-button">
         ➕ Add Rule Tier
       </button>
     </div>

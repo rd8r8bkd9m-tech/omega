@@ -1,39 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import './Dashboard.css';
+import { useDataLoader } from '../hooks/useDataLoader';
+import { LoadingState, MetricCard, EmptyState } from './common/UIComponents';
 
 function Dashboard({ db }) {
-  const [metrics, setMetrics] = useState({
-    formulaCount: 0,
-    executionCount: 0,
-    mutationCount: 0,
-    avgFitness: 0
-  });
   const [recentFormulas, setRecentFormulas] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadData();
-    const interval = setInterval(loadData, 5000);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [db]);
-
-  const loadData = async () => {
-    try {
+  const { data: metrics, loading } = useDataLoader(
+    async () => {
       const m = await db.getMetrics();
-      setMetrics(m);
-
       const formulas = await db.listFormulas();
       setRecentFormulas(formulas.slice(-5).reverse());
-      
-      setLoading(false);
-    } catch (error) {
-      console.error('Error loading dashboard data:', error);
-    }
-  };
+      return m;
+    },
+    [db],
+    5000 // Refresh every 5 seconds
+  );
 
-  if (loading) {
-    return <div className="loading">Loading...</div>;
+  if (loading || !metrics) {
+    return <LoadingState />;
   }
 
   return (
@@ -41,43 +26,19 @@ function Dashboard({ db }) {
       <h2>Dashboard</h2>
       
       <div className="metrics-grid">
-        <div className="metric-card">
-          <div className="metric-icon">📊</div>
-          <div className="metric-content">
-            <div className="metric-value">{metrics.formulaCount}</div>
-            <div className="metric-label">Formulas</div>
-          </div>
-        </div>
-
-        <div className="metric-card">
-          <div className="metric-icon">⚡</div>
-          <div className="metric-content">
-            <div className="metric-value">{metrics.executionCount}</div>
-            <div className="metric-label">Executions</div>
-          </div>
-        </div>
-
-        <div className="metric-card">
-          <div className="metric-icon">🧬</div>
-          <div className="metric-content">
-            <div className="metric-value">{metrics.mutationCount}</div>
-            <div className="metric-label">Mutations</div>
-          </div>
-        </div>
-
-        <div className="metric-card">
-          <div className="metric-icon">📈</div>
-          <div className="metric-content">
-            <div className="metric-value">{metrics.avgFitness.toFixed(2)}</div>
-            <div className="metric-label">Avg Fitness</div>
-          </div>
-        </div>
+        <MetricCard icon="📊" value={metrics.formulaCount} label="Formulas" />
+        <MetricCard icon="⚡" value={metrics.executionCount} label="Executions" />
+        <MetricCard icon="🧬" value={metrics.mutationCount} label="Mutations" />
+        <MetricCard icon="📈" value={metrics.avgFitness.toFixed(2)} label="Avg Fitness" />
       </div>
 
       <div className="recent-section">
         <h3>Recent Formulas</h3>
         {recentFormulas.length === 0 ? (
-          <p className="empty-state">No formulas yet. Create your first formula!</p>
+          <EmptyState 
+            message="No formulas yet. Create your first formula!"
+            icon="📝"
+          />
         ) : (
           <div className="formula-list">
             {recentFormulas.map(formula => (

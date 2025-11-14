@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import './KernelPanel.css';
 
 const ROLES = [
   { id: 0, name: 'Arbiter', icon: '⚖️', desc: 'Decision/Aggregation' },
@@ -19,31 +20,24 @@ function KernelPanel({ db }) {
   return (
     <div>
       <h2>Kernel Panel (0-9 Roles)</h2>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
+      <div className="roles-grid">
         {ROLES.map(role => (
           <button
             key={role.id}
             onClick={() => setActiveRole(role.id)}
-            style={{
-              padding: '1rem',
-              background: activeRole === role.id ? 'var(--primary)' : 'var(--surface)',
-              color: activeRole === role.id ? 'white' : 'var(--text)',
-              border: '1px solid var(--border)',
-              borderRadius: '0.5rem',
-              cursor: 'pointer'
-            }}
+            className={`role-button ${activeRole === role.id ? 'active' : ''}`}
           >
-            <div style={{ fontSize: '2rem' }}>{role.icon}</div>
-            <div style={{ fontWeight: 'bold' }}>{role.id}</div>
-            <div style={{ fontSize: '0.75rem' }}>{role.name}</div>
+            <div className="role-icon">{role.icon}</div>
+            <div className="role-id">{role.id}</div>
+            <div className="role-name">{role.name}</div>
           </button>
         ))}
       </div>
       
-      <div className="kolibri-card">
+      <div className="kolibri-card role-details">
         <h3>{ROLES[activeRole].icon} Role {activeRole}: {ROLES[activeRole].name}</h3>
         <p>{ROLES[activeRole].desc}</p>
-        <div style={{ marginTop: '1rem', padding: '1rem', background: 'var(--background)', borderRadius: '0.5rem' }}>
+        <div className="role-metrics">
           <p>Metrics: Active | Status: Running | Load: {Math.floor(Math.random() * 100)}%</p>
         </div>
       </div>

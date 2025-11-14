@@ -1,0 +1,37 @@
+/* Cluster Manager Styles */
+
+.cluster-config {
+  margin-bottom: 2rem;
+}
+
+.config-controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.cluster-actions {
+  margin-top: 1rem;
+  display: flex;
+  gap: 1rem;
+}
+
+.stop-button {
+  background: #ef4444;
+}
+
+.status-panel {
+  padding: 1rem;
+  background: var(--background);
+  border-radius: 0.5rem;
+}
+
+.activity-visualization {
+  margin-top: 1rem;
+  height: 100px;
+  background: var(--background);
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

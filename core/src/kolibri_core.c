@@ -3,6 +3,7 @@
  */
 
 #include "kolibri_core.h"
+#include "kolibri_utils.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -26,16 +27,12 @@ struct kolibri_core_t {
 
 /* Helper: Generate ID from timestamp and random */
 static void generate_id(uint8_t* id) {
-    uint64_t ts = (uint64_t)time(NULL);
-    memcpy(id, &ts, sizeof(ts));
-    for (int i = sizeof(ts); i < KOLIBRI_ID_SIZE; i++) {
-        id[i] = (uint8_t)(rand() & 0xFF);
-    }
+    kolibri_generate_id(id, KOLIBRI_ID_SIZE);
 }
 
 /* Helper: Compare IDs */
 static int id_equals(const uint8_t* id1, const uint8_t* id2) {
-    return memcmp(id1, id2, KOLIBRI_ID_SIZE) == 0;
+    return kolibri_id_equals(id1, id2, KOLIBRI_ID_SIZE);
 }
 
 /* Initialize core */
@@ -335,8 +332,10 @@ int kolibri_storage_export(kolibri_core_t* core, const char* path) {
     
     /* Write header */
     uint32_t magic = 0x4B464F52; /* "KFOR" */
-    fwrite(&magic, sizeof(magic), 1, f);
-    fwrite(&core->metrics.formula_count, sizeof(uint32_t), 1, f);
+    if (kolibri_write_header(f, magic, core->metrics.formula_count) != 0) {
+        fclose(f);
+        return KOLIBRI_ERROR_STORAGE;
+    }
     
     /* Write formulas */
     kv_entry_t* entry = core->storage_head;
@@ -357,14 +356,12 @@ int kolibri_storage_import(kolibri_core_t* core, const char* path) {
     if (!f) return KOLIBRI_ERROR_STORAGE;
     
     /* Read header */
-    uint32_t magic;
+    uint32_t magic = 0x4B464F52; /* "KFOR" */
     uint32_t count;
-    fread(&magic, sizeof(magic), 1, f);
-    if (magic != 0x4B464F52) {
+    if (kolibri_read_header(f, magic, &count) != 0) {
         fclose(f);
         return KOLIBRI_ERROR_STORAGE;
     }
-    fread(&count, sizeof(uint32_t), 1, f);
     
     /* Read formulas */
     for (uint32_t i = 0; i < count; i++) {
@@ -410,10 +407,9 @@ int kolibri_get_metrics(kolibri_core_t* core, kolibri_metrics_t* metrics) {
 int kolibri_sign_formula(kolibri_formula_t* formula, const uint8_t* private_key) {
     if (!formula || !private_key) return KOLIBRI_ERROR_INVALID_PARAM;
     
-    /* Simplified signature: hash of formula data */
-    for (int i = 0; i < KOLIBRI_SIGNATURE_SIZE; i++) {
-        formula->signature[i] = (uint8_t)((formula->id[i % KOLIBRI_ID_SIZE] ^ private_key[i % 32]) & 0xFF);
-    }
+    /* Sign the formula ID using shared utilities */
+    kolibri_sign_data(formula->id, KOLIBRI_ID_SIZE, private_key, 
+                     formula->signature, KOLIBRI_SIGNATURE_SIZE);
     
     return KOLIBRI_OK;
 }
@@ -421,12 +417,10 @@ int kolibri_sign_formula(kolibri_formula_t* formula, const uint8_t* private_key)
 int kolibri_verify_formula(const kolibri_formula_t* formula, const uint8_t* public_key) {
     if (!formula || !public_key) return KOLIBRI_ERROR_INVALID_PARAM;
     
-    /* Simplified verification */
-    for (int i = 0; i < KOLIBRI_SIGNATURE_SIZE; i++) {
-        uint8_t expected = (uint8_t)((formula->id[i % KOLIBRI_ID_SIZE] ^ public_key[i % 32]) & 0xFF);
-        if (formula->signature[i] != expected) {
-            return KOLIBRI_ERROR_SIGNATURE;
-        }
+    /* Verify the signature using shared utilities */
+    if (kolibri_verify_signature(formula->id, KOLIBRI_ID_SIZE, public_key,
+                                 formula->signature, KOLIBRI_SIGNATURE_SIZE) != 0) {
+        return KOLIBRI_ERROR_SIGNATURE;
     }
     
     return KOLIBRI_OK;
